@@ -266,11 +266,11 @@ tbody td{padding:10px 12px;font-size:.84rem;color:var(--txt)}
 </style>
 </head>
 <body>
-<div id="ios-install-banner" class="hidden" onclick="if(event.target===this)this.classList.add('hidden')" style="position:fixed;inset:0;z-index:9001;background:rgba(5,7,11,.82);
+<div id="ios-install-banner" onclick="if(event.target===this)ocultarBannerInstalarIOS()" style="display:none;position:fixed;inset:0;z-index:9001;background:rgba(5,7,11,.82);
   backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:1rem">
   <div style="background:#121A28;border:1px solid #2F425C;border-radius:16px;padding:1.5rem;max-width:320px;
     color:#F0F6FC;font-family:'Inter',sans-serif;text-align:center;position:relative">
-    <button onclick="document.getElementById('ios-install-banner').classList.add('hidden')" aria-label="Cerrar"
+    <button onclick="ocultarBannerInstalarIOS()" aria-label="Cerrar"
       style="position:absolute;top:8px;right:10px;background:none;border:none;color:#8B95A8;font-size:1.3rem;
       cursor:pointer;line-height:1;padding:6px">✕</button>
     <p style="font-weight:800;font-size:1rem;margin-bottom:.75rem">Instalar JoVi POS Pro</p>
@@ -278,7 +278,7 @@ tbody td{padding:10px 12px;font-size:.84rem;color:var(--txt)}
       Toca el ícono <strong>Compartir</strong> <span style="display:inline-block">⬆️</span> abajo en Safari,
       y luego elige <strong>"Agregar a inicio"</strong>.
     </p>
-    <button onclick="document.getElementById('ios-install-banner').classList.add('hidden')"
+    <button onclick="ocultarBannerInstalarIOS()"
       style="background:linear-gradient(135deg,#22D3EE,#0891B2);color:#fff;border:none;border-radius:9px;
       padding:.6rem 1.3rem;font-weight:700;cursor:pointer;font-family:inherit">Entendido</button>
   </div>
@@ -337,11 +337,15 @@ window.addEventListener('error',ev=>{
     linkEl.rel='manifest'; linkEl.href=manifestUrl;
     document.head.appendChild(linkEl);
 
-    if('serviceWorker' in navigator && (location.protocol==='https:'||location.hostname==='localhost')){
-      const swCode="self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>self.clients.claim());self.addEventListener('fetch',e=>{});";
-      const swBlob=new Blob([swCode],{type:'application/javascript'});
-      const swUrl=URL.createObjectURL(swBlob);
-      navigator.serviceWorker.register(swUrl).catch(()=>{});
+    if('serviceWorker' in navigator){
+      // Limpieza: si una versión anterior de esta app llegó a registrar un
+      // service worker, lo desactivamos. No usamos service worker aquí porque
+      // no aporta nada en iOS (Safari nunca lo usa para instalar) y en algunos
+      // hostings (como GitHub Pages) puede provocar que quede una versión
+      // vieja de la página "pegada" en caché.
+      navigator.serviceWorker.getRegistrations().then(regs=>{
+        regs.forEach(r=>r.unregister());
+      }).catch(()=>{});
     }
   }catch(e){ console.warn('PWA setup no disponible:',e); }
 })();
@@ -375,6 +379,8 @@ window.addEventListener('appinstalled',()=>{
 function esIOS(){
   return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 }
+function mostrarBannerInstalarIOS(){ const b=document.getElementById('ios-install-banner'); if(b) b.style.display='flex'; }
+function ocultarBannerInstalarIOS(){ const b=document.getElementById('ios-install-banner'); if(b) b.style.display='none'; }
 async function clickInstalarApp(){
   if(_deferredInstallPrompt){
     _deferredInstallPrompt.prompt();
@@ -382,13 +388,13 @@ async function clickInstalarApp(){
     _deferredInstallPrompt=null;
     actualizarBloqueInstalarApp();
   } else if(esIOS()){
-    document.getElementById('ios-install-banner')?.classList.remove('hidden');
+    mostrarBannerInstalarIOS();
   } else {
     toast('Para instalarla, ábrela con Chrome o Edge (Android/PC) o Safari (iPhone/iPad)','error');
   }
 }
 document.addEventListener('DOMContentLoaded',()=>{ actualizarBloqueInstalarApp(); });
-window.addEventListener('pageshow',()=>{ document.getElementById('ios-install-banner')?.classList.add('hidden'); });
+window.addEventListener('pageshow',()=>{ ocultarBannerInstalarIOS(); });
 </script>
 
 
