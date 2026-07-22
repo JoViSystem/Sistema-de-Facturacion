@@ -266,10 +266,13 @@ tbody td{padding:10px 12px;font-size:.84rem;color:var(--txt)}
 </style>
 </head>
 <body>
-<div id="ios-install-banner" class="hidden" style="position:fixed;inset:0;z-index:9001;background:rgba(5,7,11,.82);
+<div id="ios-install-banner" class="hidden" onclick="if(event.target===this)this.classList.add('hidden')" style="position:fixed;inset:0;z-index:9001;background:rgba(5,7,11,.82);
   backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:1rem">
   <div style="background:#121A28;border:1px solid #2F425C;border-radius:16px;padding:1.5rem;max-width:320px;
-    color:#F0F6FC;font-family:'Inter',sans-serif;text-align:center">
+    color:#F0F6FC;font-family:'Inter',sans-serif;text-align:center;position:relative">
+    <button onclick="document.getElementById('ios-install-banner').classList.add('hidden')" aria-label="Cerrar"
+      style="position:absolute;top:8px;right:10px;background:none;border:none;color:#8B95A8;font-size:1.3rem;
+      cursor:pointer;line-height:1;padding:6px">✕</button>
     <p style="font-weight:800;font-size:1rem;margin-bottom:.75rem">Instalar JoVi POS Pro</p>
     <p style="font-size:.85rem;color:#8B95A8;line-height:1.6;margin-bottom:1rem">
       Toca el ícono <strong>Compartir</strong> <span style="display:inline-block">⬆️</span> abajo en Safari,
@@ -385,6 +388,7 @@ async function clickInstalarApp(){
   }
 }
 document.addEventListener('DOMContentLoaded',()=>{ actualizarBloqueInstalarApp(); });
+window.addEventListener('pageshow',()=>{ document.getElementById('ios-install-banner')?.classList.add('hidden'); });
 </script>
 
 
