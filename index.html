@@ -21,7 +21,7 @@
   --side-w:230px;--side-w-c:74px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;overflow-x:hidden}
 h1,h2,h3{font-family:var(--font-d)}
 body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   background:radial-gradient(circle at 12% 8%,rgba(34,211,238,.08) 0%,transparent 45%),
@@ -211,6 +211,52 @@ tbody td{padding:10px 12px;font-size:.84rem;color:var(--txt)}
 @media print{body>*:not(#ticket-print-area){display:none!important}
   #ticket-print-area{display:block!important;margin:0 auto}
   @page{margin:4mm}}
+
+/* ===== RESPONSIVE: TABLETS Y TELÉFONOS ===== */
+#sidebar-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:55;backdrop-filter:blur(2px)}
+@media (max-width:900px){
+  .sidebar{position:fixed;top:0;left:0;height:100dvh;transform:translateX(-100%);
+    transition:transform .28s cubic-bezier(.4,0,.2,1);width:78vw;max-width:290px;z-index:60;
+    box-shadow:0 0 50px rgba(0,0,0,.6)}
+  .sidebar.mobile-open{transform:translateX(0)}
+  .sidebar.collapsed{width:78vw;max-width:290px}
+  .sidebar.collapsed .side-label,.sidebar.collapsed .side-brand-text,.sidebar.collapsed .side-foot-text{display:inline!important}
+  .side-toggle{display:none}
+  .main-area{width:100%}
+  .topbar{padding:.6rem .85rem}
+  main{padding:.85rem!important}
+  .login-card{padding:1.75rem 1.35rem;border-radius:16px}
+  .modal-box{padding:1.25rem;border-radius:14px;width:92%}
+  /* Objetivos táctiles más grandes */
+  .btn-i{padding:9px;min-width:38px;min-height:38px}
+  .side-link{padding:.75rem .8rem;font-size:.85rem}
+  input,select,textarea{font-size:16px} /* evita zoom automático de iOS al enfocar */
+  .ifield{padding-top:.6rem;padding-bottom:.6rem}
+  table{font-size:.8rem}
+  .kpi{padding:.9rem!important}
+  #botones-rapidos{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+}
+@media (min-width:641px) and (max-width:1023px){
+  /* Tablets: adelantar el breakpoint "lg" para aprovechar el ancho antes (catálogo+form junto al panel lateral) */
+  .grid.lg\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .grid.lg\:grid-cols-3>.lg\:col-span-2{grid-column:span 2 / span 2!important}
+}
+/* Teléfonos en horizontal: poco alto disponible, todo más compacto */
+@media (max-width:900px) and (orientation:landscape) and (max-height:500px){
+  .sidebar{width:60vw;max-width:260px}
+  .side-brand{padding:.7rem .8rem}
+  .side-link{padding:.5rem .7rem}
+  .topbar{padding:.4rem .8rem}
+  main{padding:.6rem!important}
+  .modal-box{max-height:94vh;padding:1rem}
+  .login-card{padding:1.25rem 1.35rem}
+  .login-card .flex-col.items-center{margin-bottom:.75rem!important}
+  #login-brand-logo{width:56px!important;height:56px!important}
+}
+@media (max-width:480px){
+  .kpi p[style*="1.6rem"]{font-size:1.25rem!important}
+  .s-title{font-size:1rem!important}
+}
 </style>
 </head>
 <body>
@@ -315,7 +361,7 @@ window.addEventListener('error',ev=>{
     <button onclick="showSection('compras')" class="nav-btn side-link" data-section="compras"><i data-feather="download"></i><span class="side-label">Compras</span></button>
     <button onclick="showSection('inventario')" class="nav-btn side-link" data-section="inventario"><i data-feather="layers"></i><span class="side-label">Inventario</span></button>
     <button onclick="showSection('reportes')" class="nav-btn side-link" data-section="reportes"><i data-feather="bar-chart-2"></i><span class="side-label">Reportes</span></button>
-    <button onclick="showSection('configuraciones')" class="nav-btn side-link" data-section="configuraciones"><i data-feather="settings"></i><span class="side-label">Config</span></button>
+    <button onclick="showSection('configuraciones')" class="nav-btn side-link" data-section="configuraciones"><i data-feather="settings"></i><span class="side-label">Configuración</span></button>
   </nav>
   <div class="side-foot">
     <div id="user-avatar" style="width:30px;height:30px;background:linear-gradient(135deg,#3B82F6,#8B5CF6);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">A</div>
@@ -326,6 +372,7 @@ window.addEventListener('error',ev=>{
   </div>
   <div class="side-foot-text" style="text-align:center;padding:.4rem 0 .7rem;font-size:.62rem;color:var(--bdr2);letter-spacing:.04em">Powered by JoVi System</div>
 </aside>
+<div id="sidebar-backdrop" class="hidden" onclick="cerrarSidebarMovil()"></div>
 
 <div class="main-area">
 <!-- TOPBAR -->
@@ -1097,11 +1144,15 @@ window.addEventListener('error',ev=>{
   </div>
 </div>
 <div id="modal-corte" class="modal-overlay hidden">
-  <div class="modal-box">
-    <h3 style="font-weight:700;color:var(--txt);font-size:1.1rem;margin-bottom:1rem;display:flex;align-items:center;gap:8px"><i data-feather="scissors" style="color:var(--or);width:16px;height:16px"></i>Corte de Caja</h3>
-    <div id="modal-corte-content" style="font-family:monospace;font-size:12px;color:var(--txt2);background:var(--bg);padding:1rem;border-radius:8px;margin-bottom:1rem;display:flex;flex-direction:column;gap:3px"></div>
+  <div class="modal-box" style="max-width:400px">
+    <h3 style="font-weight:700;color:var(--txt);font-size:1.1rem;margin-bottom:1rem;display:flex;align-items:center;gap:8px"><i data-feather="scissors" style="color:var(--or);width:16px;height:16px"></i>Cuadre / Corte de Caja</h3>
+    <div id="modal-corte-content" style="margin-bottom:1rem;border-radius:8px;overflow:hidden"></div>
+    <div style="margin-bottom:1rem">
+      <label class="lbl">Efectivo contado en caja (real)</label>
+      <input id="corte-efectivo-contado" type="number" step="0.01" class="ifield" placeholder="0.00" oninput="renderCorteCaja()"/>
+    </div>
     <div style="display:flex;gap:.6rem">
-      <button onclick="window.print()" class="btn-p" style="flex:1"><i data-feather="printer" style="width:13px;height:13px"></i>Imprimir</button>
+      <button onclick="imprimirCorte()" class="btn-p" style="flex:1"><i data-feather="printer" style="width:13px;height:13px"></i>Imprimir</button>
       <button onclick="closeModal('modal-corte')" class="btn-s" style="flex:1">Cerrar</button>
     </div>
   </div>
@@ -1369,18 +1420,34 @@ function suscribirRealtime(){
 // ============ NAVEGACIÓN ============
 const SECTION_TITLES={dashboard:'Dashboard',ventas:'Punto de Venta',historial:'Historial de Ventas',productos:'Productos',clientes:'Clientes',creditos:'Créditos',proveedores:'Proveedores',compras:'Compras',inventario:'Inventario',reportes:'Reportes',configuraciones:'Configuración'};
 function toggleSidebar(){
-  const sb=document.getElementById('sidebar');
+  const sbEl=document.getElementById('sidebar');
   const icon=document.getElementById('side-toggle-btn');
-  sb.classList.toggle('collapsed');
-  if(icon) icon.innerHTML=sb.classList.contains('collapsed')?'<i data-feather="chevron-right" style="width:13px;height:13px"></i>':'<i data-feather="chevron-left" style="width:13px;height:13px"></i>';
-  localStorage.setItem('sidebar_collapsed',sb.classList.contains('collapsed')?'1':'0');
+  const backdrop=document.getElementById('sidebar-backdrop');
+  if(window.innerWidth<=900){
+    sbEl.classList.toggle('mobile-open');
+    if(backdrop) backdrop.classList.toggle('hidden',!sbEl.classList.contains('mobile-open'));
+  } else {
+    sbEl.classList.toggle('collapsed');
+    if(icon) icon.innerHTML=sbEl.classList.contains('collapsed')?'<i data-feather="chevron-right" style="width:13px;height:13px"></i>':'<i data-feather="chevron-left" style="width:13px;height:13px"></i>';
+    localStorage.setItem('sidebar_collapsed',sbEl.classList.contains('collapsed')?'1':'0');
+  }
   feather.replace();
+}
+function cerrarSidebarMovil(){
+  const sbEl=document.getElementById('sidebar'); const backdrop=document.getElementById('sidebar-backdrop');
+  sbEl.classList.remove('mobile-open'); if(backdrop) backdrop.classList.add('hidden');
 }
 function actualizarReloj(){
   const el=document.getElementById('topbar-clock');
   if(el) el.textContent=new Date().toLocaleString('es-MX',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
 }
 setInterval(actualizarReloj,30000);
+window.addEventListener('resize',()=>{
+  if(window.innerWidth>900){
+    document.getElementById('sidebar')?.classList.remove('mobile-open');
+    document.getElementById('sidebar-backdrop')?.classList.add('hidden');
+  }
+});
 function showSection(id){
   document.querySelectorAll('section.section').forEach(s=>s.classList.remove('is-active'));
   const sec=document.getElementById(id); if(sec) sec.classList.add('is-active');
@@ -1398,6 +1465,7 @@ function showSection(id){
   if(id==='inventario')renderInventoryList();
   if(id==='reportes')renderReportes();
   if(id==='configuraciones')cargarConfiguraciones();
+  if(window.innerWidth<=900)cerrarSidebarMovil();
   feather.replace();
 }
 
@@ -1770,12 +1838,60 @@ function corteCaja(){
   const vh=ventas.filter(v=>v.fecha.startsWith(hoy));
   const tot=vh.reduce((a,v)=>a+v.total,0);
   const met={};vh.forEach(v=>{met[v.metodo]=(met[v.metodo]||0)+v.total;});
-  const bal=movimientosCaja.reduce((a,m)=>a+(m.tipo==='entrada'?m.monto:-m.monto),0);
-  const lines=[config.bizName,'===== CORTE DE CAJA =====','Fecha: '+new Date().toLocaleString('es-MX'),'Cajero: '+(currentUser?.username||'—'),'─────────────────────────','Ventas del día: '+vh.length,'Total ventas: '+config.moneda+tot.toFixed(2),'─────────────────────────','Por método:'];
-  Object.entries(met).forEach(([m,t])=>lines.push('  '+m+': '+config.moneda+t.toFixed(2)));
-  lines.push('─────────────────────────','Balance caja chica: '+config.moneda+bal.toFixed(2),'=========================');
-  document.getElementById('modal-corte-content').innerHTML=lines.map(l=>`<p>${l}</p>`).join('');
+  const movHoy=movimientosCaja.filter(m=>m.fecha.startsWith(hoy));
+  const entradas=movHoy.filter(m=>m.tipo==='entrada').reduce((a,m)=>a+m.monto,0);
+  const salidas=movHoy.filter(m=>m.tipo==='salida').reduce((a,m)=>a+m.monto,0);
+  window._corteData={vh,tot,met,entradas,salidas,movHoy,fecha:new Date()};
+  document.getElementById('corte-efectivo-contado').value='';
+  renderCorteCaja();
   openModal('modal-corte');
+}
+function construirCorteHTML(incluirCuadre){
+  const d=window._corteData; if(!d)return'';
+  const w=anchoPapelPx();
+  const efectivoVentas=d.met['Efectivo']||0;
+  const efectivoEsperado=efectivoVentas+d.entradas-d.salidas;
+  const contadoRaw=document.getElementById('corte-efectivo-contado')?document.getElementById('corte-efectivo-contado').value:'';
+  const contado=parseFloat(contadoRaw);
+  const hayContado=!isNaN(contado)&&contadoRaw!=='';
+  const diferencia=hayContado?contado-efectivoEsperado:0;
+  return `
+  <div style="background:#fff;color:#111;font-family:'Courier New',monospace;padding:16px 14px;width:${w};max-width:100%;margin:0 auto;box-sizing:border-box">
+    <div style="text-align:center;margin-bottom:8px">
+      ${config.logo?`<img src="${config.logo}" style="max-height:56px;max-width:80%;margin:0 auto 6px;display:block;object-fit:contain"/>`:''}
+      <div style="font-weight:800;font-size:14px;letter-spacing:.02em;text-transform:uppercase">${config.bizName||'Mi Negocio'}</div>
+      <div style="font-weight:700;font-size:12px;margin-top:4px;letter-spacing:.05em">CUADRE / CORTE DE CAJA</div>
+    </div>
+    <div style="border-top:1px dashed #999;border-bottom:1px dashed #999;padding:6px 0;margin:8px 0;font-size:11px;line-height:1.5">
+      <div><strong>Fecha:</strong> ${d.fecha.toLocaleString('es-DO')}</div>
+      <div><strong>Cajero:</strong> ${(currentUser&&(currentUser.nombre||currentUser.username))||'—'}</div>
+      <div><strong>Ventas del día:</strong> ${d.vh.length}</div>
+    </div>
+    <div style="font-size:11.5px;line-height:1.6">
+      <div style="font-weight:700;text-transform:uppercase;font-size:10px;color:#333;margin-bottom:2px">Ventas por método</div>
+      ${Object.keys(d.met).length?Object.entries(d.met).map(([m,t])=>`<div style="display:flex;justify-content:space-between"><span>${m}</span><span>${config.moneda}${t.toFixed(2)}</span></div>`).join(''):'<div style="color:#666">Sin ventas hoy</div>'}
+      <div style="display:flex;justify-content:space-between;font-weight:800;border-top:1px solid #111;margin-top:4px;padding-top:4px"><span>TOTAL VENTAS</span><span>${config.moneda}${d.tot.toFixed(2)}</span></div>
+    </div>
+    <div style="border-top:1px dashed #999;margin-top:10px;padding-top:6px;font-size:11.5px;line-height:1.6">
+      <div style="font-weight:700;text-transform:uppercase;font-size:10px;color:#333;margin-bottom:2px">Caja chica del día</div>
+      <div style="display:flex;justify-content:space-between"><span>Entradas</span><span>+${config.moneda}${d.entradas.toFixed(2)}</span></div>
+      <div style="display:flex;justify-content:space-between"><span>Salidas</span><span>-${config.moneda}${d.salidas.toFixed(2)}</span></div>
+    </div>
+    ${incluirCuadre?`<div style="border-top:1px dashed #999;margin-top:10px;padding-top:6px;font-size:11.5px;line-height:1.7">
+      <div style="display:flex;justify-content:space-between"><span>Efectivo por ventas</span><span>${config.moneda}${efectivoVentas.toFixed(2)}</span></div>
+      <div style="display:flex;justify-content:space-between;font-weight:700"><span>Efectivo esperado en caja</span><span>${config.moneda}${efectivoEsperado.toFixed(2)}</span></div>
+      ${hayContado?`<div style="display:flex;justify-content:space-between"><span>Efectivo contado</span><span>${config.moneda}${contado.toFixed(2)}</span></div>
+      <div style="display:flex;justify-content:space-between;font-weight:800;font-size:13px;border-top:1px solid #111;margin-top:4px;padding-top:4px;color:${diferencia===0?'#111':(diferencia>0?'#065f46':'#991b1b')}"><span>${diferencia===0?'CUADRE EXACTO':diferencia>0?'SOBRANTE':'FALTANTE'}</span><span>${config.moneda}${Math.abs(diferencia).toFixed(2)}</span></div>`:'<div style="color:#666;font-size:10.5px;margin-top:4px">Escribe el efectivo contado para ver el cuadre</div>'}
+    </div>`:''}
+    <div style="text-align:center;margin-top:12px;font-size:9.5px;color:#666">Reporte interno · JoVi POS Pro</div>
+  </div>`;
+}
+function renderCorteCaja(){
+  document.getElementById('modal-corte-content').innerHTML=construirCorteHTML(true);
+}
+function imprimirCorte(){
+  document.getElementById('ticket-print-area').innerHTML=construirCorteHTML(true);
+  window.print();
 }
 </script>
 
