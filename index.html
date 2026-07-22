@@ -266,7 +266,6 @@ tbody td{padding:10px 12px;font-size:.84rem;color:var(--txt)}
 </style>
 </head>
 <body>
-<!-- INSTALAR APP: el botón real vive dentro de Configuración > Aplicación -->
 <div id="ios-install-banner" class="hidden" style="position:fixed;inset:0;z-index:9001;background:rgba(5,7,11,.82);
   backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:1rem">
   <div style="background:#121A28;border:1px solid #2F425C;border-radius:16px;padding:1.5rem;max-width:320px;
@@ -348,15 +347,27 @@ function appYaInstalada(){
   return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
 }
 let _deferredInstallPrompt=null;
+function actualizarBloqueInstalarApp(){
+  const bloque=document.getElementById('cfg-instalar-app-bloque');
+  const btn=document.getElementById('btn-instalar-app-cfg');
+  const texto=document.getElementById('cfg-instalar-app-texto');
+  if(!bloque)return;
+  if(appYaInstalada()){
+    texto.textContent='Ya la tienes instalada en este dispositivo ✓';
+    btn.style.display='none';
+  } else {
+    btn.style.display='inline-flex';
+    texto.textContent='Úsala como una app normal, con ícono propio, sin la barra del navegador.';
+  }
+}
 window.addEventListener('beforeinstallprompt',ev=>{
   ev.preventDefault();
   _deferredInstallPrompt=ev;
-  if(!appYaInstalada())document.getElementById('btn-instalar-app')?.classList.remove('hidden');
+  actualizarBloqueInstalarApp();
 });
 window.addEventListener('appinstalled',()=>{
-  document.getElementById('btn-instalar-app')?.classList.add('hidden');
-  document.getElementById('app-ya-instalada-msg')?.classList.remove('hidden');
   _deferredInstallPrompt=null;
+  actualizarBloqueInstalarApp();
 });
 function esIOS(){
   return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -366,19 +377,16 @@ async function clickInstalarApp(){
     _deferredInstallPrompt.prompt();
     try{ await _deferredInstallPrompt.userChoice; }catch(e){}
     _deferredInstallPrompt=null;
-    document.getElementById('btn-instalar-app')?.classList.add('hidden');
+    actualizarBloqueInstalarApp();
   } else if(esIOS()){
     document.getElementById('ios-install-banner')?.classList.remove('hidden');
+  } else {
+    toast('Para instalarla, ábrela con Chrome o Edge (Android/PC) o Safari (iPhone/iPad)','error');
   }
 }
-document.addEventListener('DOMContentLoaded',()=>{
-  if(appYaInstalada()){
-    document.getElementById('app-ya-instalada-msg')?.classList.remove('hidden');
-  } else if(esIOS()){
-    document.getElementById('btn-instalar-app')?.classList.remove('hidden');
-  }
-});
+document.addEventListener('DOMContentLoaded',()=>{ actualizarBloqueInstalarApp(); });
 </script>
+
 
 <!-- LOGIN / REGISTRO -->
 <section id="login-section" class="min-h-screen flex flex-col justify-center items-center"
@@ -891,7 +899,6 @@ document.addEventListener('DOMContentLoaded',()=>{
       <div class="cfg-tab" onclick="showCfgTab('pagos-cfg')"><i data-feather="credit-card"></i>Métodos de Pago</div>
       <div class="cfg-tab" onclick="showCfgTab('datos')"><i data-feather="database"></i>Datos / Backup</div>
       <div class="cfg-tab" onclick="showCfgTab('apariencia')"><i data-feather="sliders"></i>Apariencia</div>
-      <div class="cfg-tab" onclick="showCfgTab('app')"><i data-feather="smartphone"></i>Aplicación</div>
     </div>
     <!-- PANELS -->
     <div class="lg:col-span-3">
@@ -1179,6 +1186,13 @@ document.addEventListener('DOMContentLoaded',()=>{
       <!-- APARIENCIA -->
       <div id="cfg-panel-apariencia" class="cfg-panel card" style="padding:1.5rem">
         <h3 style="font-weight:700;font-size:1rem;color:var(--txt);margin-bottom:1.25rem;display:flex;align-items:center;gap:8px"><i data-feather="sliders" style="width:15px;height:15px;color:var(--pu)"></i>Apariencia</h3>
+        <div id="cfg-instalar-app-bloque" class="card" style="padding:1rem;background:rgba(34,211,238,.06);border-color:rgba(34,211,238,.25);margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+          <div>
+            <p style="font-weight:700;color:var(--txt);font-size:.88rem;display:flex;align-items:center;gap:7px"><i class="fa-solid fa-mobile-screen-button" style="color:var(--ac)"></i>Instalar como app</p>
+            <p id="cfg-instalar-app-texto" style="font-size:.78rem;color:var(--txt2);margin-top:2px">Úsala como una app normal, con ícono propio, sin la barra del navegador.</p>
+          </div>
+          <button id="btn-instalar-app-cfg" onclick="clickInstalarApp()" class="btn-p" style="padding:.55rem 1rem;flex-shrink:0"><i class="fa-solid fa-download"></i>Instalar</button>
+        </div>
         <div style="display:flex;flex-direction:column;gap:1.25rem">
           <div>
             <label class="lbl" style="margin-bottom:.75rem">Color de acento</label>
@@ -1206,20 +1220,6 @@ document.addEventListener('DOMContentLoaded',()=>{
             </select>
           </div>
         </div>
-      </div>
-
-      <!-- APLICACIÓN -->
-      <div id="cfg-panel-app" class="cfg-panel card" style="padding:1.5rem">
-        <h3 style="font-weight:700;font-size:1rem;color:var(--txt);margin-bottom:1.25rem;display:flex;align-items:center;gap:8px"><i data-feather="smartphone" style="width:15px;height:15px;color:var(--ac)"></i>Aplicación</h3>
-        <p style="font-size:.85rem;color:var(--txt2);line-height:1.6;margin-bottom:1.25rem">
-          Instala JoVi POS Pro como una app en este dispositivo para abrirla directo desde tu pantalla de inicio, sin usar el navegador.
-        </p>
-        <button id="btn-instalar-app" class="hidden btn-p" onclick="clickInstalarApp()" style="padding:.6rem 1.4rem;display:inline-flex;align-items:center;gap:8px">
-          <i class="fa-solid fa-download"></i> Instalar App
-        </button>
-        <p id="app-ya-instalada-msg" class="hidden" style="font-size:.85rem;color:var(--txt2);margin-top:.5rem">
-          <i data-feather="check-circle" style="width:14px;height:14px;color:var(--ac);display:inline;margin-right:4px"></i>Esta app ya está instalada en este dispositivo.
-        </p>
       </div>
 
     </div><!-- fin lg:col-span-3 -->
