@@ -651,12 +651,15 @@ window.addEventListener('pageshow',()=>{ ocultarBannerInstalarIOS(); });
         <option value="Tarjeta">Tarjeta</option><option value="Transferencia">Transferencia</option>
         <option value="Credito">Crédito</option>
       </select>
+      <select id="filtro-hist-vendedor" class="ifield" style="width:180px" onchange="renderHistorial()">
+        <option value="">Todos los vendedores</option>
+      </select>
       <button onclick="exportarHistorialCSV()" class="btn-s"><i data-feather="download" style="width:13px;height:13px"></i>CSV</button>
-      <button onclick="corteCaja()" class="btn-b"><i data-feather="scissors" style="width:13px;height:13px"></i>Corte de Caja</button>
+      <button onclick="corteCaja('dia')" class="btn-b"><i data-feather="scissors" style="width:13px;height:13px"></i>Corte de Caja</button>
     </div>
     <div class="custom-scrollbar" style="overflow-x:auto">
       <table>
-        <thead><tr><th style="text-align:left">#</th><th style="text-align:left">Fecha</th><th style="text-align:left">Cliente</th><th style="text-align:left">Método</th><th style="text-align:left">Items</th><th style="text-align:right">Total</th><th style="text-align:center">Acción</th></tr></thead>
+        <thead><tr><th style="text-align:left">#</th><th style="text-align:left">Fecha</th><th style="text-align:left">Cliente</th><th style="text-align:left">Vendedor</th><th style="text-align:left">Método</th><th style="text-align:left">Items</th><th style="text-align:right">Total</th><th style="text-align:center">Acción</th></tr></thead>
         <tbody id="historial-table"></tbody>
       </table>
     </div>
@@ -1280,6 +1283,14 @@ window.addEventListener('pageshow',()=>{ ocultarBannerInstalarIOS(); });
 <div id="modal-corte" class="modal-overlay hidden">
   <div class="modal-box" style="max-width:400px">
     <h3 style="font-weight:700;color:var(--txt);font-size:1.1rem;margin-bottom:1rem;display:flex;align-items:center;gap:8px"><i data-feather="scissors" style="color:var(--or);width:16px;height:16px"></i>Cuadre / Corte de Caja</h3>
+    <div style="margin-bottom:1rem">
+      <label class="lbl">Periodo</label>
+      <select id="corte-periodo" class="ifield" onchange="corteCaja(this.value)">
+        <option value="dia">Día (hoy)</option>
+        <option value="semana">Semana (lunes a hoy)</option>
+        <option value="mes">Mes (desde el día 1)</option>
+      </select>
+    </div>
     <div id="modal-corte-content" style="margin-bottom:1rem;border-radius:8px;overflow:hidden"></div>
     <div style="margin-bottom:1rem">
       <label class="lbl">Efectivo contado en caja (real)</label>
@@ -2033,17 +2044,26 @@ function imprimirTicketInteligente(){
 function reimprimirTicket(){const v=ventas.find(x=>x.id===ventaActualId);if(v)mostrarTicket(v);}
 
 // ============ HISTORIAL ============
+function poblarFiltroVendedores(){
+  const sel=document.getElementById('filtro-hist-vendedor'); if(!sel)return;
+  const actual=sel.value;
+  const nombres=[...new Set(ventas.map(v=>v.vendedor).filter(Boolean))].sort();
+  sel.innerHTML='<option value="">Todos los vendedores</option>'+nombres.map(n=>`<option value="${n}">${n}</option>`).join('');
+  if(nombres.includes(actual))sel.value=actual;
+}
 function renderHistorial(){
-  const ff=document.getElementById('filtro-hist-fecha').value,fm=document.getElementById('filtro-hist-metodo').value;
+  poblarFiltroVendedores();
+  const ff=document.getElementById('filtro-hist-fecha').value,fm=document.getElementById('filtro-hist-metodo').value,fv=document.getElementById('filtro-hist-vendedor').value;
   let lista=[...ventas].reverse();
   if(ff)lista=lista.filter(v=>v.fecha.startsWith(ff));
   if(fm)lista=lista.filter(v=>v.metodo===fm);
+  if(fv)lista=lista.filter(v=>v.vendedor===fv);
   const tbody=document.getElementById('historial-table'); tbody.innerHTML='';
-  if(!lista.length){tbody.innerHTML='<tr><td colspan="7" style="padding:1.5rem;text-align:center;color:var(--txt2);font-size:.84rem">Sin ventas</td></tr>';}
+  if(!lista.length){tbody.innerHTML='<tr><td colspan="8" style="padding:1.5rem;text-align:center;color:var(--txt2);font-size:.84rem">Sin ventas</td></tr>';}
   lista.forEach(v=>{
     const tr=document.createElement('tr');
     const bm={Efectivo:'badge-green',Tarjeta:'badge-blue',Transferencia:'badge-yellow',Credito:'badge-red'}[v.metodo]||'badge-blue';
-    tr.innerHTML=`<td style="font-size:.72rem;color:var(--txt2)">${v.id}</td><td style="font-size:.82rem">${new Date(v.fecha).toLocaleString('es-MX')}</td><td style="font-size:.84rem">${v.clienteNombre}</td><td><span class="${bm}">${v.metodo}</span></td><td style="font-size:.82rem">${v.items.length} items</td><td style="text-align:right;font-weight:700;color:var(--ac)">${config.moneda}${v.total.toFixed(2)}</td><td style="text-align:center"><button onclick="verDetalleVenta('${v.id}')" style="font-size:.78rem;color:var(--bl);background:none;border:none;cursor:pointer">Ver</button></td>`;
+    tr.innerHTML=`<td style="font-size:.72rem;color:var(--txt2)">${v.id}</td><td style="font-size:.82rem">${new Date(v.fecha).toLocaleString('es-MX')}</td><td style="font-size:.84rem">${v.clienteNombre}</td><td style="font-size:.82rem;color:var(--txt2)">${v.vendedor||'—'}</td><td><span class="${bm}">${v.metodo}</span></td><td style="font-size:.82rem">${v.items.length} items</td><td style="text-align:right;font-weight:700;color:var(--ac)">${config.moneda}${v.total.toFixed(2)}</td><td style="text-align:center"><button onclick="verDetalleVenta('${v.id}')" style="font-size:.78rem;color:var(--bl);background:none;border:none;cursor:pointer">Ver</button></td>`;
     tbody.appendChild(tr);
   });
   const suma=lista.reduce((a,v)=>a+v.total,0);
@@ -2058,16 +2078,37 @@ function verDetalleVenta(id){
   html+=`<hr style="border-color:var(--bdr);margin:.5rem 0"/><div style="display:flex;justify-content:space-between;font-weight:700;color:var(--txt)"><span>TOTAL</span><span>${config.moneda}${v.total.toFixed(2)}</span></div>`;
   document.getElementById('modal-hist-content').innerHTML=html; openModal('modal-historial-venta');
 }
-function corteCaja(){
-  const hoy=new Date().toISOString().split('T')[0];
-  const vh=ventas.filter(v=>v.fecha.startsWith(hoy));
+function rangoFechasPeriodo(periodo){
+  const ahora=new Date();
+  let inicio;
+  if(periodo==='semana'){
+    inicio=new Date(ahora);
+    const dia=inicio.getDay(); // 0=domingo
+    const diff=(dia===0?6:dia-1); // retrocede hasta el lunes
+    inicio.setDate(inicio.getDate()-diff);
+    inicio.setHours(0,0,0,0);
+  } else if(periodo==='mes'){
+    inicio=new Date(ahora.getFullYear(),ahora.getMonth(),1,0,0,0,0);
+  } else {
+    inicio=new Date(ahora); inicio.setHours(0,0,0,0);
+  }
+  return {inicio,fin:ahora};
+}
+function corteCaja(periodo){
+  periodo=periodo||(document.getElementById('corte-periodo')?document.getElementById('corte-periodo').value:'dia');
+  const {inicio,fin}=rangoFechasPeriodo(periodo);
+  const enRango=f=>{const t=new Date(f).getTime();return t>=inicio.getTime()&&t<=fin.getTime();};
+  const vh=ventas.filter(v=>enRango(v.fecha));
   const tot=vh.reduce((a,v)=>a+v.total,0);
   const met={};vh.forEach(v=>{met[v.metodo]=(met[v.metodo]||0)+v.total;});
-  const movHoy=movimientosCaja.filter(m=>m.fecha.startsWith(hoy));
-  const entradas=movHoy.filter(m=>m.tipo==='entrada').reduce((a,m)=>a+m.monto,0);
-  const salidas=movHoy.filter(m=>m.tipo==='salida').reduce((a,m)=>a+m.monto,0);
-  window._corteData={vh,tot,met,entradas,salidas,movHoy,fecha:new Date()};
-  document.getElementById('corte-efectivo-contado').value='';
+  const porVendedor={};vh.forEach(v=>{const nom=v.vendedor||'—';porVendedor[nom]=(porVendedor[nom]||0)+v.total;});
+  const movP=movimientosCaja.filter(m=>enRango(m.fecha));
+  const entradas=movP.filter(m=>m.tipo==='entrada').reduce((a,m)=>a+m.monto,0);
+  const salidas=movP.filter(m=>m.tipo==='salida').reduce((a,m)=>a+m.monto,0);
+  window._corteData={vh,tot,met,porVendedor,entradas,salidas,periodo,inicio,fin};
+  const inputContado=document.getElementById('corte-efectivo-contado');
+  if(inputContado)inputContado.value='';
+  const sel=document.getElementById('corte-periodo'); if(sel)sel.value=periodo;
   renderCorteCaja();
   openModal('modal-corte');
 }
@@ -2080,25 +2121,34 @@ function construirCorteHTML(incluirCuadre){
   const contado=parseFloat(contadoRaw);
   const hayContado=!isNaN(contado)&&contadoRaw!=='';
   const diferencia=hayContado?contado-efectivoEsperado:0;
+  const etiquetaPeriodo={dia:'DEL DÍA',semana:'DE LA SEMANA',mes:'DEL MES'}[d.periodo]||'DEL DÍA';
+  const opciones={day:'2-digit',month:'2-digit',year:'2-digit'};
+  const rangoTxt=d.periodo==='dia'?d.fin.toLocaleDateString('es-DO'):(d.inicio.toLocaleDateString('es-DO',opciones)+' – '+d.fin.toLocaleDateString('es-DO',opciones));
+  const vendedores=Object.entries(d.porVendedor).sort((a,b)=>b[1]-a[1]);
   return `
   <div style="background:#fff;color:#111;font-family:'Courier New',monospace;padding:16px 14px;width:${w};max-width:100%;margin:0 auto;box-sizing:border-box">
     <div style="text-align:center;margin-bottom:8px">
       ${config.logo?`<img src="${config.logo}" style="max-height:56px;max-width:80%;margin:0 auto 6px;display:block;object-fit:contain"/>`:''}
       <div style="font-weight:800;font-size:14px;letter-spacing:.02em;text-transform:uppercase">${config.bizName||'Mi Negocio'}</div>
-      <div style="font-weight:700;font-size:12px;margin-top:4px;letter-spacing:.05em">CUADRE / CORTE DE CAJA</div>
+      <div style="font-weight:700;font-size:12px;margin-top:4px;letter-spacing:.05em">CUADRE / CORTE ${etiquetaPeriodo}</div>
     </div>
     <div style="border-top:1px dashed #999;border-bottom:1px dashed #999;padding:6px 0;margin:8px 0;font-size:11px;line-height:1.5">
-      <div><strong>Fecha:</strong> ${d.fecha.toLocaleString('es-DO')}</div>
+      <div><strong>Periodo:</strong> ${rangoTxt}</div>
+      <div><strong>Generado:</strong> ${new Date().toLocaleString('es-DO')}</div>
       <div><strong>Cajero:</strong> ${(currentUser&&(currentUser.nombre||currentUser.username))||'—'}</div>
-      <div><strong>Ventas del día:</strong> ${d.vh.length}</div>
+      <div><strong>Ventas:</strong> ${d.vh.length}</div>
     </div>
     <div style="font-size:11.5px;line-height:1.6">
       <div style="font-weight:700;text-transform:uppercase;font-size:10px;color:#333;margin-bottom:2px">Ventas por método</div>
-      ${Object.keys(d.met).length?Object.entries(d.met).map(([m,t])=>`<div style="display:flex;justify-content:space-between"><span>${m}</span><span>${config.moneda}${t.toFixed(2)}</span></div>`).join(''):'<div style="color:#666">Sin ventas hoy</div>'}
+      ${Object.keys(d.met).length?Object.entries(d.met).map(([m,t])=>`<div style="display:flex;justify-content:space-between"><span>${m}</span><span>${config.moneda}${t.toFixed(2)}</span></div>`).join(''):'<div style="color:#666">Sin ventas en este periodo</div>'}
       <div style="display:flex;justify-content:space-between;font-weight:800;border-top:1px solid #111;margin-top:4px;padding-top:4px"><span>TOTAL VENTAS</span><span>${config.moneda}${d.tot.toFixed(2)}</span></div>
     </div>
+    ${vendedores.length?`<div style="border-top:1px dashed #999;margin-top:10px;padding-top:6px;font-size:11.5px;line-height:1.6">
+      <div style="font-weight:700;text-transform:uppercase;font-size:10px;color:#333;margin-bottom:2px">Ventas por vendedor</div>
+      ${vendedores.map(([n,t])=>`<div style="display:flex;justify-content:space-between"><span>${n}</span><span>${config.moneda}${t.toFixed(2)}</span></div>`).join('')}
+    </div>`:''}
     <div style="border-top:1px dashed #999;margin-top:10px;padding-top:6px;font-size:11.5px;line-height:1.6">
-      <div style="font-weight:700;text-transform:uppercase;font-size:10px;color:#333;margin-bottom:2px">Caja chica del día</div>
+      <div style="font-weight:700;text-transform:uppercase;font-size:10px;color:#333;margin-bottom:2px">Caja chica del periodo</div>
       <div style="display:flex;justify-content:space-between"><span>Entradas</span><span>+${config.moneda}${d.entradas.toFixed(2)}</span></div>
       <div style="display:flex;justify-content:space-between"><span>Salidas</span><span>-${config.moneda}${d.salidas.toFixed(2)}</span></div>
     </div>
