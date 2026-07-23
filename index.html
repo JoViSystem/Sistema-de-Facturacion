@@ -1022,6 +1022,25 @@ window.addEventListener('pageshow',()=>{ ocultarBannerInstalarIOS(); });
             <label style="display:flex;align-items:center;gap:8px;font-size:.84rem;color:var(--txt2);cursor:pointer"><input type="checkbox" id="cfg-abrir-cajon-auto" style="accent-color:var(--ac)" onchange="config.abrirCajonAuto=this.checked;sb.from('negocios').update({abrir_cajon_auto:this.checked}).eq('id',config.negocioId);"/>Abrir el cajón de dinero automáticamente en ventas en efectivo</label>
           </div>
         </div>
+        <hr class="divider" style="margin-top:1.5rem"/>
+        <div style="margin-top:1.25rem">
+          <h4 style="font-weight:700;font-size:.92rem;color:var(--txt);margin-bottom:.4rem;display:flex;align-items:center;gap:8px"><i class="fa-brands fa-bluetooth-b" style="color:var(--bl)"></i>Impresora térmica Bluetooth (celular/tablet)</h4>
+          <p style="font-size:.78rem;color:var(--txt2);margin-bottom:.6rem">Para imprimir facturas desde el celular con una impresora térmica portátil por Bluetooth. Funciona en <strong>Chrome/Edge en Android, Windows, Mac o ChromeOS</strong>, con la app abierta por <strong>http(s)/localhost</strong>.</p>
+          <div style="padding:.6rem .75rem;border-radius:8px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);margin-bottom:.9rem">
+            <p style="font-size:.76rem;color:var(--re)"><i data-feather="alert-triangle" style="width:12px;height:12px;display:inline;margin-right:4px"></i><strong>iPhone/iPad no es compatible</strong> — Apple no permite que Safari (ni ningún navegador en iOS) use Bluetooth. En esos equipos usa la impresora por USB, o el diálogo normal de impresión.</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:.9rem">
+            <div id="bt-estado" style="font-size:.84rem"><span style="color:var(--txt2)">○ Sin conectar</span></div>
+          </div>
+          <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem">
+            <button onclick="conectarImpresoraBT()" class="btn-p" style="padding:.5rem 1rem"><i class="fa-brands fa-bluetooth-b"></i>&nbsp;Conectar impresora Bluetooth</button>
+            <button onclick="desconectarImpresoraBT()" class="btn-s" style="padding:.5rem 1rem">Desconectar</button>
+            <button onclick="imprimirPruebaBT()" class="btn-s" style="padding:.5rem 1rem"><i data-feather="file-text" style="width:13px;height:13px"></i>Ticket de prueba</button>
+            <button onclick="abrirCajonBT()" class="btn-s" style="padding:.5rem 1rem"><i data-feather="dollar-sign" style="width:13px;height:13px"></i>Abrir cajón ahora</button>
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;font-size:.84rem;color:var(--txt2);cursor:pointer"><input type="checkbox" id="cfg-usar-bt" style="accent-color:var(--ac)" onchange="config.usarBT=this.checked;sb.from('negocios').update({usar_bt:this.checked}).eq('id',config.negocioId).then(()=>actualizarEstadoBT());"/>Usar esta impresora directamente al finalizar una venta (en vez del diálogo de impresión)</label>
+          <p style="font-size:.72rem;color:var(--txt2);margin-top:.6rem">No todas las impresoras Bluetooth funcionan igual — esta app prueba los canales más comunes de fábrica. Si tu impresora no conecta o no imprime bien, probablemente use un chip distinto.</p>
+        </div>
       </div>
 
       <!-- TICKETS -->
@@ -1248,7 +1267,7 @@ window.addEventListener('pageshow',()=>{ ocultarBannerInstalarIOS(); });
       <button onclick="imprimirTicketInteligente()" class="btn-p" style="flex:1"><i data-feather="printer" style="width:13px;height:13px"></i>Imprimir</button>
       <button onclick="closeModal('modal-ticket')" class="btn-s" style="flex:1">Cerrar</button>
     </div>
-    <p id="ticket-usb-hint" class="hidden" style="font-size:.7rem;color:var(--txt2);text-align:center;margin-top:.5rem"><i class="fa-brands fa-usb"></i> Se enviará directo a la impresora térmica USB conectada</p>
+    <p id="ticket-usb-hint" class="hidden" style="font-size:.7rem;color:var(--txt2);text-align:center;margin-top:.5rem"><i class="fa-solid fa-print"></i> Se enviará directo a la impresora térmica conectada</p>
   </div>
 </div>
 <div id="modal-credito-detalle" class="modal-overlay hidden">
@@ -1409,7 +1428,7 @@ function negocioAConfig(n){
     moneda:n.moneda||'$',logo:n.logo||'',ticketMsg:n.ticket_msg||'¡Gracias por su compra!',ticketFooter2:n.ticket_footer2||'',
     impuestoOn:n.impuesto_on,impuestoNombre:n.impuesto_nombre||'ITBIS',impuestoPct:n.impuesto_pct||0,folioNext:n.folio_next||1,
     usarUSB:n.usar_usb,abrirCajonAuto:n.abrir_cajon_auto,autoPrint:n.auto_print!==false,codigoInvitacion:n.codigo_invitacion,
-    timezone:n.timezone||'America/Santo_Domingo'};
+    timezone:n.timezone||'America/Santo_Domingo',usarBT:n.usar_bt};
 }
 async function entrarConSesion(user){
   let {data:perfil}=await sb.from('perfiles').select('*').eq('id',user.id).maybeSingle();
@@ -1790,7 +1809,7 @@ function actualizarEstadoUSB(){
     ?'<span style="color:var(--ac);font-weight:600">● Conectada: '+(config.usbPrinterInfo?config.usbPrinterInfo.nombre:'Impresora USB')+'</span>'
     :'<span style="color:var(--txt2)">○ Sin conectar</span>';
   const hint=document.getElementById('ticket-usb-hint');
-  if(hint&&ventaActualObj) hint.classList.toggle('hidden',!(config.usarUSB&&usbDevice));
+  if(hint&&ventaActualObj) hint.classList.toggle('hidden',!((config.usarUSB&&usbDevice)||(config.usarBT&&btCaracteristica)));
 }
 function escposTexto(str){return Array.from(new TextEncoder().encode(str));}
 function construirComandosESCPOS(venta){
@@ -1843,6 +1862,96 @@ async function abrirCajonManual(){
 }
 function imprimirPruebaUSB(){
   imprimirUSB({folio:'PRUEBA-000000',id:'TEST',fecha:new Date().toISOString(),clienteNombre:'Cliente de prueba',vendedor:currentUser?currentUser.username:'admin',metodo:'Efectivo',efectivoRecibido:100,total:100,descuentoGlobal:0,items:[{nombre:'Producto de prueba',cantidad:1,precio:100,descuento:0}]});
+}
+
+// ============ IMPRESIÓN TÉRMICA POR BLUETOOTH (Web Bluetooth / ESC-POS) ============
+// Requiere Chrome o Edge (Android, Windows, Mac o ChromeOS) y que la app se abra
+// por http(s)/localhost — NO funciona con doble clic al archivo (file://).
+// IMPORTANTE: Safari/iPhone/iPad NO soportan Bluetooth desde el navegador (restricción
+// de Apple en todos los navegadores de iOS, no solo Safari) — en esos equipos, esta
+// opción no va a aparecer disponible; usa la impresora por USB o el diálogo normal.
+const BT_SOPORTADO=('bluetooth' in navigator);
+// UUIDs de servicios "serie" conocidos que usan muchas impresoras térmicas Bluetooth
+// genéricas (no hay un estándar único, así que probamos varios). Si tu impresora no
+// aparece o no funciona, es probable que use un chip distinto no listado aquí.
+const BT_SERVICIOS_CONOCIDOS=[
+  '000018f0-0000-1000-8000-00805f9b34fb', // muy común en impresoras térmicas chinas
+  '0000ff00-0000-1000-8000-00805f9b34fb',
+  '0000ffe0-0000-1000-8000-00805f9b34fb', // módulos HM-10 / genéricos
+  '49535343-fe7d-4ae5-8fa9-9fafd205e455'  // UART Microchip, usado por varios fabricantes
+];
+let btDevice=null, btCaracteristica=null;
+async function conectarImpresoraBT(){
+  if(!BT_SOPORTADO){toast('Este navegador/dispositivo no soporta Bluetooth desde la app (en iPhone/iPad no es posible). Usa Chrome en Android/Windows.','error');return;}
+  try{
+    const device=await navigator.bluetooth.requestDevice({
+      acceptAllDevices:true,
+      optionalServices:BT_SERVICIOS_CONOCIDOS
+    });
+    const server=await device.gatt.connect();
+    let encontrada=null;
+    for(const uuid of BT_SERVICIOS_CONOCIDOS){
+      try{
+        const service=await server.getPrimaryService(uuid);
+        const caracteristicas=await service.getCharacteristics();
+        encontrada=caracteristicas.find(c=>c.properties.write||c.properties.writeWithoutResponse)||caracteristicas[0];
+        if(encontrada)break;
+      }catch(e){ /* esta impresora no tiene este servicio, seguimos probando */ }
+    }
+    if(!encontrada){
+      // último intento: buscar en TODOS los servicios disponibles del dispositivo
+      const servicios=await server.getPrimaryServices();
+      for(const service of servicios){
+        const caracteristicas=await service.getCharacteristics();
+        const c=caracteristicas.find(c=>c.properties.write||c.properties.writeWithoutResponse);
+        if(c){encontrada=c;break;}
+      }
+    }
+    if(!encontrada) throw new Error('No se encontró un canal de escritura en esta impresora');
+    btDevice=device; btCaracteristica=encontrada;
+    device.addEventListener('gattserverdisconnected',()=>{ btDevice=null;btCaracteristica=null;actualizarEstadoBT();toast('Impresora Bluetooth desconectada','error'); });
+    config.btPrinterInfo={nombre:device.name||'Impresora Bluetooth'};
+    save('jvp_config',config);
+    toast('Impresora Bluetooth conectada: '+(device.name||''));
+    actualizarEstadoBT();
+  }catch(err){ console.error(err); toast('No se pudo conectar por Bluetooth: '+err.message,'error'); }
+}
+async function desconectarImpresoraBT(){
+  if(btDevice&&btDevice.gatt.connected){try{btDevice.gatt.disconnect();}catch(e){}}
+  btDevice=null;btCaracteristica=null;actualizarEstadoBT();toast('Impresora Bluetooth desconectada');
+}
+function actualizarEstadoBT(){
+  const el=document.getElementById('bt-estado'); if(!el)return;
+  el.innerHTML=btCaracteristica
+    ?'<span style="color:var(--ac);font-weight:600">● Conectada: '+(config.btPrinterInfo?config.btPrinterInfo.nombre:'Impresora Bluetooth')+'</span>'
+    :'<span style="color:var(--txt2)">○ Sin conectar</span>';
+}
+async function enviarBT(uint8arr){
+  if(!btCaracteristica) throw new Error('Impresora Bluetooth no conectada');
+  // Bluetooth de bajo consumo solo acepta paquetes chicos por escritura —
+  // se manda en trozos con una pausa mínima para no saturar el buffer.
+  const TAM_TROZO=100;
+  const conRespuesta=!!btCaracteristica.properties.write;
+  for(let i=0;i<uint8arr.length;i+=TAM_TROZO){
+    const trozo=uint8arr.slice(i,i+TAM_TROZO);
+    if(conRespuesta) await btCaracteristica.writeValue(trozo);
+    else await btCaracteristica.writeValueWithoutResponse(trozo);
+    await new Promise(r=>setTimeout(r,25));
+  }
+}
+async function imprimirBT(venta){
+  try{
+    await enviarBT(construirComandosESCPOS(venta));
+    if(venta.metodo==='Efectivo'&&config.abrirCajonAuto) await enviarBT(comandoAbrirCajon());
+    toast('Ticket enviado por Bluetooth');
+  }catch(err){ console.error(err); toast('Falló la impresión por Bluetooth, se abrirá el diálogo normal','error'); window.print(); }
+}
+async function abrirCajonBT(){
+  try{await enviarBT(comandoAbrirCajon());toast('Cajón abierto');}
+  catch(err){toast('Conecta primero la impresora Bluetooth','error');}
+}
+function imprimirPruebaBT(){
+  imprimirBT({folio:'PRUEBA-000000',id:'TEST',fecha:new Date().toISOString(),clienteNombre:'Cliente de prueba',vendedor:currentUser?currentUser.username:'admin',metodo:'Efectivo',efectivoRecibido:100,total:100,descuentoGlobal:0,items:[{nombre:'Producto de prueba',cantidad:1,precio:100,descuento:0}]});
 }
 
 // ============ TICKET / FACTURA ============
@@ -1912,12 +2021,13 @@ function mostrarTicket(venta){
   document.getElementById('ticket-content').innerHTML=html;
   document.getElementById('ticket-print-area').innerHTML=html;
   const hint=document.getElementById('ticket-usb-hint');
-  if(hint) hint.classList.toggle('hidden',!(config.usarUSB&&usbDevice));
+  if(hint) hint.classList.toggle('hidden',!((config.usarUSB&&usbDevice)||(config.usarBT&&btCaracteristica)));
   openModal('modal-ticket');
   if(config.autoPrint!==false) setTimeout(()=>imprimirTicketInteligente(),350);
 }
 function imprimirTicketInteligente(){
   if(config.usarUSB&&usbDevice&&ventaActualObj){ imprimirUSB(ventaActualObj); }
+  else if(config.usarBT&&btCaracteristica&&ventaActualObj){ imprimirBT(ventaActualObj); }
   else { window.print(); }
 }
 function reimprimirTicket(){const v=ventas.find(x=>x.id===ventaActualId);if(v)mostrarTicket(v);}
@@ -2405,9 +2515,10 @@ function cargarConfiguraciones(){
   document.getElementById('cfg-impuesto-on').checked=!!config.impuestoOn;
   document.getElementById('cfg-usar-usb').checked=!!config.usarUSB;
   document.getElementById('cfg-abrir-cajon-auto').checked=!!config.abrirCajonAuto;
+  document.getElementById('cfg-usar-bt').checked=!!config.usarBT;
   document.getElementById('cfg-auto-print').checked=config.autoPrint!==false;
   if(config.logo){document.getElementById('cfg-logo-preview').src=config.logo;document.getElementById('cfg-logo-preview').style.display='block';document.getElementById('cfg-logo-text').style.display='none';}
-  renderUsuarios(); renderCajasConfig(); renderImpresorasConfig(); actualizarEstadoUSB();
+  renderUsuarios(); renderCajasConfig(); renderImpresorasConfig(); actualizarEstadoUSB(); actualizarEstadoBT();
 }
 async function guardarConfiguraciones(){
   config.bizName=document.getElementById('cfg-biz-name').value.trim()||'JoVi POS';
